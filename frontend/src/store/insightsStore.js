@@ -1,39 +1,35 @@
 // frontend/src/store/insightsStore.js
-import { ref } from 'vue'
+import { defineStore } from 'pinia'
 
-const loading = ref(false)
-const error = ref(null)
-const insights = ref(null)
+export const useInsightsStore = defineStore('insights', {
+    state: () => ({
+        data: null,
+        isLoading: false,
+        error: null,
+    }),
 
-const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+    actions: {
+        async fetchInsights() {
+            this.isLoading = true
+            this.error = null
 
-async function fetchInsights() {
-    loading.value = true
-    error.value = null
+            try {
+                const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+                const res = await fetch(`${baseUrl}/api/insights`)
 
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/insights`)
+                if (!res.ok) {
+                    const text = await res.text()
+                    throw new Error(`HTTP ${res.status} – ${text || res.statusText}`)
+                }
 
-        if (!res.ok) {
-            throw new Error(`Request failed with status ${res.status}`)
-        }
-
-        const data = await res.json()
-        insights.value = data
-    } catch (err) {
-        console.error('Error fetching insights:', err)
-        error.value = err.message ?? 'Unbekannter Fehler'
-    } finally {
-        loading.value = false
-    }
-}
-
-export function useInsightsStore() {
-    return {
-        loading,
-        error,
-        insights,
-        fetchInsights,
-    }
-}
+                const json = await res.json()
+                this.data = json
+            } catch (err) {
+                console.error('Fehler beim Laden der Insights:', err)
+                this.error = err instanceof Error ? err.message : String(err)
+            } finally {
+                this.isLoading = false
+            }
+        },
+    },
+})
